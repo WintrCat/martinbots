@@ -1,6 +1,8 @@
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 
+import evilMartin from "./bots/evilMartin";
+
 dotenv.config();
 
 type PieceColour = "white" | "black";
@@ -30,7 +32,7 @@ async function* getEventStream(): AsyncGenerator<any> {
 
 // Stream of board updates / move events
 async function* getBoardStateStream(gameId: string): AsyncGenerator<any> {
-    const stateStreamResponse = await fetch(`https://lichess.org/api/board/game/stream/${gameId}`, {
+    const stateStreamResponse = await fetch(`https://lichess.org/api/bot/game/stream/${gameId}`, {
         method: "GET",
         headers: {
             "Authorization": `Bearer ${process.env.BOT_TOKEN}`
@@ -52,12 +54,22 @@ async function listenBoardStates(gameId: string, colour: PieceColour) {
 
     for await (const event of boardStateStream) {
         if (event.type == "gameFull" && colour == "white") {
-            
+            const topLine = await evilMartin.generateMove(
+                event.initialFen == "startpos"
+                    ? STARTING_FEN
+                    : event.initialFen
+            );
+
+            if (!topLine) continue;
+
+            console.log(`evil martin's move is: ${topLine.moves[0].san}`);
         }
     }
 }
 
 async function main() {
+    console.log(await evilMartin.generateMove(STARTING_FEN));
+
     for await (const event of getEventStream()) {
         if (event.type == "gameStart") {
             listenBoardStates(event.game.gameId, event.game.color);
