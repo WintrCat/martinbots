@@ -1,77 +1,63 @@
 import fetch from "node-fetch";
 import dotenv from "dotenv";
+import { Chess } from "chess.js";
 
+import PieceColour from "./types/PieceColour";
+import { getEventStream, getBoardStateStream, playMove } from "./lib/lichessBot";
 import evilMartin from "./bots/evilMartin";
 
 dotenv.config();
 
-type PieceColour = "white" | "black";
-
 const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-// Stream of challenge events
-async function* getEventStream(): AsyncGenerator<any> {
-    const eventStreamResponse = await fetch("https://lichess.org/api/stream/event", {
-        method: "GET",
-        headers: {
-            "Authorization": `Bearer ${process.env.BOT_TOKEN}`
-        }
-    });
+async function playBotMove(gameId: string, fen: string) {
+    const uciMove = await evilMartin.generateMove(gameId, fen);
+    if (!uciMove) return;
 
-    const eventStream = eventStreamResponse.body;
-    if (!eventStream) return;
+    console.log(`bot's move is: ${uciMove}, playing it...`);
 
-    console.log("logging events...");
-
-    for await (const event of eventStream) {
-        try {
-            yield JSON.parse(event.toString());
-        } catch {}
-    }
-}
-
-// Stream of board updates / move events
-async function* getBoardStateStream(gameId: string): AsyncGenerator<any> {
-    const stateStreamResponse = await fetch(`https://lichess.org/api/bot/game/stream/${gameId}`, {
-        method: "GET",
-        headers: {
-            "Authorization": `Bearer ${process.env.BOT_TOKEN}`
-        }
-    });
-
-    const stateStream = stateStreamResponse.body;
-    if (!stateStream) return;
-
-    for await (const event of stateStream) {
-        try {
-            yield JSON.parse(event.toString());
-        } catch {}
-    }
+    playMove(gameId, uciMove);
 }
 
 async function listenBoardStates(gameId: string, colour: PieceColour) {
     const boardStateStream = getBoardStateStream(gameId);
 
+    let initialFen = STARTING_FEN;
+
     for await (const event of boardStateStream) {
+        if (event.type == "gameState") {
+            const board = new Chess(initialFen);
+
+            try {
+                for (const move of event.moves.split(" ")) {
+                    board.move(move);
+                }
+            } catch {
+                continue;
+            }
+
+            if (board.turn() != colour.charAt(0)) continue;
+
+            playBotMove(gameId, board.fen());
+        }
+
         if (event.type == "gameFull" && colour == "white") {
-            const topLine = await evilMartin.generateMove(
-                event.initialFen == "startpos"
-                    ? STARTING_FEN
-                    : event.initialFen
-            );
+            initialFen = event.initialFen == "startpos"
+                ? STARTING_FEN
+                : event.initialFen;
 
-            if (!topLine) continue;
-
-            console.log(`evil martin's move is: ${topLine.moves[0].san}`);
+            playBotMove(gameId, initialFen);
         }
     }
 }
 
 async function main() {
-    console.log(await evilMartin.generateMove(STARTING_FEN));
+    console.log("listening to challenges...");
 
     for await (const event of getEventStream()) {
         if (event.type == "gameStart") {
+            console.log("game started.");
+
             listenBoardStates(event.game.gameId, event.game.color);
 
             continue;

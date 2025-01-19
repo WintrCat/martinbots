@@ -20,7 +20,7 @@ class Engine {
     private position = new Chess().fen();
 
     constructor() {
-        this.worker = spawn("./public/stockfish/stockfish.exe");
+        this.worker = spawn("./public/stockfish/stockfish");
 
         this.sendCommand("uci");
         this.setPosition(this.position);
@@ -30,7 +30,7 @@ class Engine {
         this.worker.stdin.write(command + "\n");
     }
 
-    private consumeLogs(
+    consumeLogs(
         command: string,
         endCondition: (logMessage: string) => boolean,
         onLogReceived?: (logMessage: string) => void
@@ -49,7 +49,7 @@ class Engine {
                 logMessages.push(message);
     
                 if (endCondition(message)) {
-                    worker.stdout.off("message", onMessageReceived);
+                    worker.stdout.off("data", onMessageReceived);
                     worker.stderr.off("error", reject);
 
                     resolve(logMessages);
@@ -122,7 +122,7 @@ class Engine {
         const evaluationLogs = (await this.consumeLogs(
             `go depth ${depth}`,
             log => (
-                log.startsWith("bestmove")
+                log.includes("bestmove")
                 || log.includes("depth 0")
             ),
             log => {
