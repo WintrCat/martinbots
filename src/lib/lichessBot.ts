@@ -47,3 +47,5 @@ export async function playMove(gameId: string, moveUci: string) {
         }
     });
 }
+
+// Send a chat message in a game

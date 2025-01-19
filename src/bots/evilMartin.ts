@@ -1,15 +1,10 @@
-import { random } from "lodash";
 import { Chess } from "chess.js";
 
 import Engine from "../lib/engine";
 import { opinionatedEvaluation } from "../lib/evaluation";
+import { generateMove as getMartinMove } from "./martin";
 
 const fullStockfish = new Engine();
-
-const martin = new Engine();
-
-martin.setOption("UCI_LimitStrength", "true");
-martin.setOption("UCI_Elo", "400");
 
 let lastGameId = "";
 let angry = false;
@@ -48,7 +43,7 @@ async function generateMove(gameId: string, fen: string) {
         )
         || angry
     ) {
-        console.log(`top engine move played.`);
+        console.log("top engine move played.");
 
         angry = true;
 
@@ -56,35 +51,9 @@ async function generateMove(gameId: string, fen: string) {
     }
 
     // Play a martin move
-    if (random(10) > 4) {
-        return new Promise<string>(res => {
-            const moveUci = moves[random(moves.length - 1)].lan;
+    console.log("martin move played.");
 
-            setTimeout(() => {
-                console.log("martin move played.");
-
-                res(moveUci);
-            }, 700);
-        });
-    }
-
-    martin.setPosition(fen);
-
-    const evaluationLogs = await martin.consumeLogs(
-        `go movetime 700`,
-        log => (
-            log.includes("bestmove")
-            || log.includes("depth 0")
-        )
-    );
-
-    const moveLog = evaluationLogs.at(-1)!;
-
-    const moveUci = moveLog.match(/(?<=(?:bestmove )|(?: pv )).{4,5}/)?.[0];
-
-    console.log(`martin move played.`);
-
-    return moveUci;
+    return await getMartinMove(fen);
 }
 
 export default {
