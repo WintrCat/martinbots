@@ -1,5 +1,6 @@
 import { Chess } from "chess.js";
 
+import { sendChatMessage } from "../lib/lichessBot";
 import Engine from "../lib/engine";
 import { opinionatedEvaluation } from "../lib/evaluation";
 import { generateMove as getMartinMove } from "./martin";
@@ -45,7 +46,11 @@ async function generateMove(gameId: string, fen: string) {
     ) {
         console.log("top engine move played.");
 
-        angry = true;
+        if (!angry) {
+            sendChatMessage(gameId, "i'm boutta lock in bro -martin");
+
+            angry = true;
+        }   
 
         return evaluationResult.lines.at(0)?.moves[0].uci;
     }

@@ -49,3 +49,13 @@ export async function playMove(gameId: string, moveUci: string) {
 }
 
 // Send a chat message in a game
+export async function sendChatMessage(gameId: string, message: string) {
+    await fetch(`https://lichess.org/api/bot/game/${gameId}/chat`, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${process.env.BOT_TOKEN}`,
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: `room=player&text=${message}`
+    });
+}
