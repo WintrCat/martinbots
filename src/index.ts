@@ -5,13 +5,30 @@ import { Chess } from "chess.js";
 import PieceColour from "./types/PieceColour";
 import { getEventStream, getBoardStateStream, playMove } from "./lib/lichessBot";
 import evilMartin from "./bots/evilMartin";
+import stockmartin from "./bots/stockmartin";
+import martinfish from "./bots/martinfish";
 
 dotenv.config();
 
 const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 async function playBotMove(gameId: string, fen: string) {
-    const uciMove = await evilMartin.generateMove(gameId, fen);
+    let uciMove: string | undefined;
+
+    switch (process.env.BOT_TYPE) {
+        case "evil_martin":
+            uciMove = await evilMartin.generateMove(gameId, fen);
+            break;
+        case "stockmartin":
+            uciMove = await stockmartin.generateMove(gameId, fen);
+            break;
+        case "martinfish":
+            uciMove = await martinfish.generateMove(gameId, fen);
+            break;
+        default:
+            throw new Error("no bot type found in environment variables.");
+    }
+
     if (!uciMove) return;
 
     console.log(`bot's move is: ${uciMove}, playing it...`);
@@ -84,5 +101,7 @@ async function main() {
         console.log("challenge received from allowed user, accepting it...");
     }
 }
+
+console.log(`starting lichess bot with type: ${process.env.BOT_TYPE}`);
 
 main();

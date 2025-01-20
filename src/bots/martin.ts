@@ -26,7 +26,7 @@ export async function generateMove(fen: string) {
     martin.setPosition(fen);
 
     const evaluationLogs = await martin.consumeLogs(
-        `go movetime 700`,
+        "go movetime 700",
         log => (
             log.includes("bestmove")
             || log.includes("depth 0")

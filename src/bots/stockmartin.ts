@@ -1,6 +1,5 @@
 import { Chess } from "chess.js";
 
-import { sendChatMessage } from "../lib/lichessBot";
 import Engine from "../lib/engine";
 import { opinionatedEvaluation } from "../lib/evaluation";
 import { generateMove as getMartinMove } from "./martin";
@@ -8,12 +7,12 @@ import { generateMove as getMartinMove } from "./martin";
 const stockfish = new Engine();
 
 let lastGameId = "";
-let angry = false;
+let angry = true;
 
 async function generateMove(gameId: string, fen: string) {
     if (gameId != lastGameId) {
         lastGameId = gameId;
-        angry = false;
+        angry = true;
     }
 
     const board = new Chess(fen);
@@ -22,7 +21,6 @@ async function generateMove(gameId: string, fen: string) {
     if (moves.length == 0) return;
 
     // Get top engine move
-    // If evaluation is worse than -6, start playing them
     stockfish.setPosition(fen);
     
     const evaluationResult = await stockfish.evaluate(18);
@@ -36,31 +34,30 @@ async function generateMove(gameId: string, fen: string) {
 
     console.log(`the evaluation from perspective of bot is: ${evaluationValue}`);
 
+    // If the evaluation is good for bot, start playing like Martin
     if (
-        evaluationValue < -600
+        evaluationValue >= 600
         || (
             evaluation.type == "mate"
-            && evaluationValue < 0
+            && evaluationValue > 0
         )
-        || angry
+        || !angry
     ) {
-        if (!angry) {
-            console.log("evil martin was put into top engine mode.");
+        if (angry) {
+            console.log("stockmartin was put into martin mode.");
 
-            sendChatMessage(gameId, "i'm boutta lock in -martin");
-
-            angry = true;
+            angry = false;
         }
 
-        console.log("top engine move played.");
+        console.log("martin move played.");
 
-        return evaluationResult.lines.at(0)?.moves[0].uci;
+        return await getMartinMove(fen);
     }
 
-    // Play a martin move
-    console.log("martin move played.");
+    // Play the top engine move
+    console.log("top engine move played.");
 
-    return await getMartinMove(fen);
+    return evaluationResult.lines.at(0)?.moves[0].uci;
 }
 
 export default {
