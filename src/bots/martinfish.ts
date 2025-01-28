@@ -13,7 +13,7 @@ async function generateMove(gameId: string, fen: string) {
     if (moves.length == 0) return;
 
     // Random chance of martin move
-    if (random(10) > 8) {
+    if (random(9) > 8) {
         console.log("martin move played.");
 
         return await getMartinMove(fen);

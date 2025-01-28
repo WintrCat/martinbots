@@ -37,7 +37,7 @@ async function generateMove(gameId: string, fen: string) {
     console.log(`the evaluation from perspective of bot is: ${evaluationValue}`);
 
     if (
-        evaluationValue < -600
+        evaluationValue < -400
         || (
             evaluation.type == "mate"
             && evaluationValue < 0

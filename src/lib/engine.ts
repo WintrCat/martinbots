@@ -120,7 +120,7 @@ class Engine {
         let highestDepthReached = 0;
 
         const evaluationLogs = (await this.consumeLogs(
-            `go depth ${depth}`,
+            `go movetime 1200`,
             log => (
                 log.includes("bestmove")
                 || log.includes("depth 0")
